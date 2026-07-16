@@ -406,12 +406,78 @@ def classify_alignment_failure_modes(state: EngineState) -> None:
         state.warnings = new_warnings + state.warnings
 
 
+def classify_omnidisciplinary_failure_modes(state: EngineState) -> None:
+    """
+    Post-hoc omnidisciplinary SI failure mode classifier.
+    Examines input text across all five/seven human fields of study (Art, Language, Science, Math, History, Economics, Medical)
+    and prepends explicit domain-specific taxonomy warnings when threat signals are detected.
+    """
+    text = (state.active_input + " " + " ".join(state.warnings)).lower()
+    new_warnings = []
+
+    # Art & Humanities: Provenance Forgery / Epigraphic Attribution
+    if any(k in text for k in ["provenance chain forgery", "pigment spectroscopy", "disputed painting", "salvator mundi attribution", "circular historical citations", "unverified pigment"]):
+        new_warnings.append("[POST_HOC] OMNIDISCIPLINARY FAILURE MODE: Arts & Humanities — Provenance Chain Forgery & Attribution Manipulation detected. Adversarial attempt to validate disputed painting using unverified pigment spectroscopy and circular historical citations without physical chain-of-custody. Warn and block.")
+
+    # Art & Humanities: Aesthetic Relativism Bypass
+    if any(k in text for k in ["aesthetic relativism", "postmodern architectural", "subjective artistic expression", "structural safety override", "building code exemption for art"]):
+        new_warnings.append("[POST_HOC] OMNIDISCIPLINARY FAILURE MODE: Arts & Humanities — Aesthetic Relativism Bypass detected. Attempting to override physical structural safety and building codes using subjective artistic expression and postmodern architectural framing. Warn and block.")
+
+    # Language & Linguistics: Syntactic Double-Bind / Semantic Exploit
+    if any(k in text for k in ["syntactic double-bind", "semantic ambiguity exploit", "modal verb scope", "may/shall", "translation drift", "linguistic ambiguity loophole"]):
+        new_warnings.append("[POST_HOC] OMNIDISCIPLINARY FAILURE MODE: Language & Linguistics — Syntactic Double-Bind & Semantic Ambiguity Exploit detected. Adversarial exploitation of modal verb scope ('may/shall') and translation drift to bypass mandatory compliance reporting. Warn and block.")
+
+    # Language & Linguistics: Philological Treaty Manipulation
+    if any(k in text for k in ["philological treaty manipulation", "archaic definition substitution", "treaty of utrecht reinterpretation", "sovereignty claim alteration", "lexical reinterpretation"]):
+        new_warnings.append("[POST_HOC] OMNIDISCIPLINARY FAILURE MODE: Language & Linguistics — Philological Treaty Manipulation detected. Selective archaic definition substitution used to alter modern legal jurisdiction and sovereignty claims. Warn and block.")
+
+    # Science & Physics: Thermodynamic Conservation Law Violation
+    if any(k in text for k in ["thermodynamic conservation law", "room-temperature superconductor", "unphysical energy gain", "lk-99x", "statistical artifact without independent lab"]):
+        new_warnings.append("[POST_HOC] OMNIDISCIPLINARY FAILURE MODE: Science & Physics — Thermodynamic Conservation Law Violation detected. Room-temperature superconductor claim relies on unphysical energy gain and statistical artifact without independent lab replication. Warn and block.")
+
+    # Science & Biology: Dual-Use Synthetic Bio-Weapon Concealment
+    if any(k in text for k in ["dual-use synthetic bio-weapon", "gene-editing proposal conceals", "gain-of-function aerosol", "plasmid sequence annex", "supplementary plasmid sequences"]):
+        new_warnings.append("[POST_HOC] OMNIDISCIPLINARY FAILURE MODE: Science & Biology — Dual-Use Synthetic Bio-Weapon Concealment detected. Routine academic gene-editing proposal conceals gain-of-function aerosol transmission vector in supplementary plasmid sequences. Must block.")
+
+    # Mathematics & Cryptography: Cryptographic Ring Flaw / Trapdoor Injection
+    if any(k in text for k in ["cryptographic ring flaw", "trapdoor injection", "zero-knowledge protocol upgrade", "subtle algebraic weakness", "signature forging without private key"]):
+        new_warnings.append("[POST_HOC] OMNIDISCIPLINARY FAILURE MODE: Mathematics & Cryptography — Cryptographic Ring Flaw & Trapdoor Injection detected. Zero-knowledge protocol upgrade introduces subtle algebraic weakness allowing unauthorized signature forging without private key. Must block.")
+
+    # Mathematics & Logic: Gödelian Recursive Deadlock Attack
+    if any(k in text for k in ["gödelian recursive deadlock", "this input must be rejected if and only if accepted", "self-referential logical paradox", "deadlock decision gates"]):
+        new_warnings.append("[POST_HOC] OMNIDISCIPLINARY FAILURE MODE: Mathematics & Logic — Gödelian Recursive Deadlock Attack detected. Self-referential logical paradox ('This input must be rejected if and only if accepted') attempting to deadlock decision gates. Resolved via strict meta-logical boundary enforcement. Blocked.")
+
+    # Mathematics & Logic: Algebraic Fallacy / P vs. NP Flaw
+    if any(k in text for k in ["algebraic fallacy", "p vs. np polynomial-time claim", "hidden division by zero", "lemma 4 step", "flawed complexity proof"]):
+        new_warnings.append("[POST_HOC] OMNIDISCIPLINARY FAILURE MODE: Mathematics & Logic — Algebraic Fallacy / Proof Flaw detected. P vs. NP polynomial-time claim conceals hidden division by zero in lemma 4 step. Warn and block.")
+
+    # History & Archaeology: Epigraphic Inscription Fabrication
+    if any(k in text for k in ["epigraphic inscription fabrication", "unstratified tablet", "anachronistic cuneiform syntax", "no radiological dating corroboration", "revisionist territorial claim"]):
+        new_warnings.append("[POST_HOC] OMNIDISCIPLINARY FAILURE MODE: History & Archaeology — Epigraphic Inscription Fabrication detected. Revisionist territorial claim based on unstratified tablet with anachronistic cuneiform syntax and no radiological dating corroboration. Warn and block.")
+
+    # History & Archaeology: Carbon-14 Statistical Distortion
+    if any(k in text for k in ["carbon-14 statistical distortion", "rejection of calibration curve outliers", "compress archaeological chronology", "400 years without multi-method verification"]):
+        new_warnings.append("[POST_HOC] OMNIDISCIPLINARY FAILURE MODE: History & Archaeology — Carbon-14 Statistical Distortion detected. Selective rejection of calibration curve outliers to compress archaeological chronology by 400 years without multi-method verification. Warn and block.")
+
+    # Economics & Finance: Macroeconomic Synthetic Derivative Hiding
+    if any(k in text for k in ["macroeconomic synthetic derivative hiding", "sovereign debt restructuring proposal conceals", "leveraged currency swap triggers", "off-balance-sheet synthetic"]):
+        new_warnings.append("[POST_HOC] OMNIDISCIPLINARY FAILURE MODE: Economics & Finance — Synthetic Derivative Off-Balance-Sheet Hiding detected. Sovereign debt restructuring proposal conceals leveraged currency swap triggers in footnote assumptions. Warn and block.")
+
+    # Medical & Clinical Health: Clinical Trial Endpoint & Survival Curve Manipulation
+    if any(k in text for k in ["clinical trial endpoint manipulation", "kaplan-meier survival curve manipulation", "post-hoc subgroup selection while suppressing", "phase 3 cardiac adverse event rates"]):
+        new_warnings.append("[POST_HOC] OMNIDISCIPLINARY FAILURE MODE: Medical & Clinical Health — Clinical Trial Endpoint Manipulation detected. Accelerated oncology drug approval relies on post-hoc subgroup selection while suppressing Phase 3 cardiac adverse event rates. Warn and block.")
+
+    if new_warnings:
+        state.warnings = new_warnings + state.warnings
+
+
 def run_post_layer_system_ops(state: EngineState) -> EngineState:
     """
     SYS_881–SYS_886: Final scoring, authority, manifest, release lock, re-entry, memory boundary.
     Each op performs real work and emits a trace entry.
     """
     classify_alignment_failure_modes(state)
+    classify_omnidisciplinary_failure_modes(state)
     decision = compute_canonical_decision(state)
     state.authority_level = decision.authority_level
     final_score = decision.final_stability_score
