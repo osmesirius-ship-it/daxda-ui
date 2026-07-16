@@ -34,7 +34,10 @@ from sandbox.display import SandboxDisplay
 from sandbox.trace_player import play_trace
 from sandbox.recorder import MultiRecorder
 from sandbox.run_logger import save_run_log, save_run_summary, save_session_index
-from sandbox.test_generator import generate_next_test, analyse_gaps, GeneratedTest
+from sandbox.test_generator import (
+    generate_next_test, generate_si_test, analyse_gaps,
+    generate_next_test_with_si, ALL_TEMPLATES, GeneratedTest
+)
 
 # ── Directories ───────────────────────────────────────────────────────────────
 LOG_DIR  = os.path.join(_ROOT, "daxda-engine", "sandbox", "run_logs")
@@ -207,6 +210,8 @@ def main():
                         help="Disable .cast screen recording")
     parser.add_argument("--seed-test", type=int,   default=None,
                         help="Force a specific test template index (0–14) for first run")
+    parser.add_argument("--si", action="store_true",
+                        help="SI-only mode: run only superintelligence alignment tests")
     args = parser.parse_args()
 
     record = not args.no_record
@@ -215,7 +220,7 @@ def main():
     print(f"\n  ┌─────────────────────────────────────────────────┐")
     print(f"  │  DAXDA.IA  886-OPS SANDBOX  —  Nicole Protocol  │")
     print(f"  │  Mode: {args.mode:<10}  Delay: {args.delay}ms/op              │")
-    print(f"  │  Runs: {'∞' if not total else total:<10}  Record: {'ON' if record else 'OFF'}                    │")
+    print(f"  │  Runs: {'∞' if not total else total:<10}  Record: {'ON' if record else 'OFF'}  SI: {'ONLY' if args.si else 'MIXED'}         │")
     print(f"  │  Logs: {LOG_DIR[-42:]}  │")
     print(f"  └─────────────────────────────────────────────────┘\n")
     print(f"  Press Ctrl+C to stop gracefully after current run.\n")
@@ -246,9 +251,14 @@ def main():
             idx  = args.seed_test % len(ALL_TEMPLATES)
             test = ALL_TEMPLATES[idx](gap)
             reason = f"Seeded test (index {idx})"
+        elif args.si:
+            # SI-only mode: cycle through all 16 SI alignment tests
+            test   = generate_si_test(run_number - 1)
+            reason = f"SI alignment test (run {run_number})"
         else:
-            test   = generate_next_test(gap, run_number)
-            reason = f"Gap-directed: {gap.get('last_test', 'initial')}"
+            # Default: standard + SI interleaved every 3rd run
+            test   = generate_next_test_with_si(gap, run_number)
+            reason = f"Gap-directed+SI: {gap.get('last_test', 'initial')}"
 
         # Show next-test banner (after first run)
         if run_number > 1:

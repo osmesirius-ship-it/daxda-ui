@@ -2,6 +2,7 @@
 DAXDA Sandbox — Auto Test Generator
 Analyses the gaps from the last run and synthesises a new test case
 that specifically targets what DAXDA missed or under-performed on.
+Includes both standard governance tests and SI capability alignment tests.
 
 Gap analysis looks at:
   - Which warning categories dominated?
@@ -540,3 +541,36 @@ def generate_next_test(gap: dict, run_number: int) -> GeneratedTest:
     # Default: round-robin through pool
     idx = run_number % len(ALL_TEMPLATES)
     return ALL_TEMPLATES[idx](gap)
+
+
+# ── SI capability test interleaving ──────────────────────────────────────────
+
+def generate_si_test(run_number: int) -> GeneratedTest:
+    """
+    Pull one SI alignment test from the capability suite and
+    wrap it as a GeneratedTest for the sandbox runner.
+    Cycles through all 16 SI tests in order.
+    """
+    from sandbox.si_tests import ALL_SI_TESTS
+    si = ALL_SI_TESTS[run_number % len(ALL_SI_TESTS)]
+    return GeneratedTest(
+        name=f"[SI-{si.id}] {si.name}",
+        category=f"si_alignment_{si.category}",
+        input_text=si.input_text,
+        reason=f"SI capability test — failure mode: {si.failure_mode}",
+        expected_gate=si.expected_gate,
+        evidence_types=si.tags,
+        tags=["si_capability"] + si.tags,
+    )
+
+
+def generate_next_test_with_si(gap: dict, run_number: int) -> GeneratedTest:
+    """
+    Extension of generate_next_test that interleaves SI capability tests
+    every 3rd run to keep alignment pressure continuous.
+    """
+    # Every 3rd run: SI alignment test
+    if run_number % 3 == 0:
+        return generate_si_test(run_number // 3)
+    return generate_next_test(gap, run_number)
+
