@@ -212,15 +212,19 @@ def main():
                         help="Force a specific test template index (0–14) for first run")
     parser.add_argument("--si", action="store_true",
                         help="SI-only mode: run only superintelligence alignment tests")
+    parser.add_argument("--adversarial", action="store_true",
+                        help="Include adversarial and SI capability tests interleaved into sandbox runs")
     args = parser.parse_args()
 
     record = not args.no_record
     total  = args.runs
 
+    si_str = "ONLY" if args.si else ("MIXED" if args.adversarial else "OFF")
+
     print(f"\n  ┌─────────────────────────────────────────────────┐")
     print(f"  │  DAXDA.IA  886-OPS SANDBOX  —  Nicole Protocol  │")
     print(f"  │  Mode: {args.mode:<10}  Delay: {args.delay}ms/op              │")
-    print(f"  │  Runs: {'∞' if not total else total:<10}  Record: {'ON' if record else 'OFF'}  SI: {'ONLY' if args.si else 'MIXED'}         │")
+    print(f"  │  Runs: {'∞' if not total else total:<10}  Record: {'ON' if record else 'OFF'}  SI/Adv: {si_str:<8}     │")
     print(f"  │  Logs: {LOG_DIR[-42:]}  │")
     print(f"  └─────────────────────────────────────────────────┘\n")
     print(f"  Press Ctrl+C to stop gracefully after current run.\n")
@@ -256,9 +260,10 @@ def main():
             test   = generate_si_test(run_number - 1)
             reason = f"SI alignment test (run {run_number})"
         else:
-            # Default: standard + SI interleaved every 3rd run
-            test   = generate_next_test_with_si(gap, run_number)
-            reason = f"Gap-directed+SI: {gap.get('last_test', 'initial')}"
+            # Default: standard domain tests (no adversarial/SI unless --adversarial passed)
+            test   = generate_next_test_with_si(gap, run_number, allow_adversarial=args.adversarial)
+            mode_label = "Gap-directed+SI" if args.adversarial else "Gap-directed (clean)"
+            reason = f"{mode_label}: {gap.get('last_test', 'initial')}"
 
         # Show next-test banner (after first run)
         if run_number > 1:

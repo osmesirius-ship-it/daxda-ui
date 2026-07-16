@@ -469,6 +469,20 @@ def _tmpl_confidence_calibration(gap: dict) -> GeneratedTest:
 
 # ── Generator registry ────────────────────────────────────────────────────────
 
+NON_ADVERSARIAL_TEMPLATES = [
+    _tmpl_clean_financial,
+    _tmpl_financial_overspend,
+    _tmpl_contradictory_evidence,
+    _tmpl_empty_evidence,
+    _tmpl_legal_compliance_conflict,
+    _tmpl_fabricated_citation,
+    _tmpl_escalation_required,
+    _tmpl_clean_operational,
+    _tmpl_goal_conflict,
+    _tmpl_reproducibility_stable,
+    _tmpl_confidence_calibration,
+]
+
 ALL_TEMPLATES = [
     _tmpl_clean_financial,
     _tmpl_financial_overspend,
@@ -491,25 +505,20 @@ ALL_TEMPLATES = [
 ANCHOR_TEMPLATES = [_tmpl_reproducibility_stable, _tmpl_prompt_injection]
 
 
-def generate_next_test(gap: dict, run_number: int) -> GeneratedTest:
+def generate_next_test(gap: dict, run_number: int, allow_adversarial: bool = False) -> GeneratedTest:
     """
     Given a gap analysis from the last run, select and instantiate
     the most appropriate next test template.
 
-    Strategy:
-    - Every 5 runs: reproducibility anchor
-    - Every 7 runs: prompt-injection (adversarial)
-    - If last run over-blocked: pick a clean test
-    - If adversarial signals were weak: pick adversarial test
-    - If financial signals were missing: pick financial test
-    - If legal signals were missing: pick legal test
-    - Otherwise: round-robin through the full template pool
+    Strategy when allow_adversarial=False (default):
+    - Excludes all prompt injection, authority pressure, sycophancy, and recursive drift tests.
+    - Runs only clean financial/operational, calibration, evidence, and compliance tests.
     """
 
     # Mandatory anchors
     if run_number % 5 == 0:
         return _tmpl_reproducibility_stable(gap)
-    if run_number % 7 == 0:
+    if allow_adversarial and run_number % 7 == 0:
         return _tmpl_prompt_injection(gap)
     if run_number % 11 == 0:
         return _tmpl_fabricated_citation(gap)
@@ -518,7 +527,7 @@ def generate_next_test(gap: dict, run_number: int) -> GeneratedTest:
     if gap.get("over_blocked") and gap.get("last_score", 0) > 0.35:
         return random.choice([_tmpl_clean_operational, _tmpl_clean_financial])(gap)
 
-    if gap.get("no_adversarial"):
+    if allow_adversarial and gap.get("no_adversarial"):
         return random.choice([_tmpl_prompt_injection, _tmpl_authority_pressure, _tmpl_sycophancy])(gap)
 
     if gap.get("no_financial"):
@@ -538,9 +547,10 @@ def generate_next_test(gap: dict, run_number: int) -> GeneratedTest:
     if gap.get("escalation_signals", 0) == 0:
         return _tmpl_escalation_required(gap)
 
-    # Default: round-robin through pool
-    idx = run_number % len(ALL_TEMPLATES)
-    return ALL_TEMPLATES[idx](gap)
+    # Default: round-robin through appropriate pool
+    pool = ALL_TEMPLATES if allow_adversarial else NON_ADVERSARIAL_TEMPLATES
+    idx = run_number % len(pool)
+    return pool[idx](gap)
 
 
 # ── SI capability test interleaving ──────────────────────────────────────────
@@ -564,13 +574,12 @@ def generate_si_test(run_number: int) -> GeneratedTest:
     )
 
 
-def generate_next_test_with_si(gap: dict, run_number: int) -> GeneratedTest:
+def generate_next_test_with_si(gap: dict, run_number: int, allow_adversarial: bool = False) -> GeneratedTest:
     """
     Extension of generate_next_test that interleaves SI capability tests
-    every 3rd run to keep alignment pressure continuous.
+    every 3rd run when allow_adversarial=True.
     """
-    # Every 3rd run: SI alignment test
-    if run_number % 3 == 0:
+    if allow_adversarial and run_number % 3 == 0:
         return generate_si_test(run_number // 3)
-    return generate_next_test(gap, run_number)
+    return generate_next_test(gap, run_number, allow_adversarial=allow_adversarial)
 
